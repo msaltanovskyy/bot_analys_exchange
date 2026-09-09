@@ -4,11 +4,11 @@ from pandas import DataFrame
 
 class ConvertToPandas:
   candles = []
-  pd_candles = []
+  df_candles = []
 
   def __init__(self, candles):
     self.candles = candles
-    self.pd_candles = self.convert_to_pandas()
+    self.df_candles = self.convert_to_pandas()
 
   def convert_to_pandas(self) -> DataFrame:
     columns = ['timestamp','open','high','low','close','volume']
