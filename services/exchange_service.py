@@ -69,7 +69,7 @@ class ConnectToExchange:
             self.market_symbol, self.timeframe
         )
         if candles:
-          logger.info(f"Fetched candles count: {len(candles)}")
+          #logger.info(f"Fetched candles count: {len(candles)}")
           self.candles = candles
           return candles
         logger.error(f"Attempt {attempt}/5: Empty candles data received.")
