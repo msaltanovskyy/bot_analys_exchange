@@ -25,6 +25,9 @@ class ConnectToExchange:
     except ccxt.BaseError as e:
       logger.error(f"Error loading market info or connection: {e}")
 
+  def get_delta(self):
+    return self.delta
+
   def set_market_symbol(self) -> str:
     while True:
       user_symbol = input("Set market symbol (def. BTC/USDT): ").strip().upper()

@@ -10,9 +10,8 @@ if __name__ == '__main__':
   connection = ConnectToExchange(timeframe='1h')
   connection.start()
   candles = connection.fetch_candles()
-  df = ConvertToPandas(candles)
-  logger.info("Output 5 candles: \n%s",df.df_candles.tail())
-  patterns = PatternService(candles=df.df_candles)
-  patterns_results = patterns.patterns_analysis()
-  logger.info(f"Output patterns {patterns_results}")
+  pd = ConvertToPandas(candles)
+  logger.info("Output 5 candles: \n%s",pd.df_candles.tail())
+  patterns = PatternService(candles=pd.df_candles, delta=connection.get_delta())
+  patterns.get_last_candle_pattern()
 

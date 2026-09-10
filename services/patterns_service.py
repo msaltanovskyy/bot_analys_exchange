@@ -3,12 +3,15 @@ import logging
 from pandas import DataFrame
 
 logger = logging.getLogger(__name__)
+
 class PatternService:
 
   candles: DataFrame
+  delta = 0.0
 
-  def __init__(self, candles):
+  def __init__(self, candles, delta ):
     self.candles = candles
+    self.delta = delta
 
   def patterns_analysis(self) -> dict:
     open_p = self.candles["open"].to_numpy(dtype=float)
@@ -39,17 +42,33 @@ class PatternService:
       "harami": talib.CDLHARAMI(open_p, high_p, low_p, close_p),
     }
 
-    last_candle_patterns = {}
+    return results
 
-    for pattern_name, values in results.items():
+
+  def get_last_candle_pattern(self):
+    pattern_results: dict = self.patterns_analysis()
+    #last_candle_patterns = {}
+    bullish_pattern = {}
+    bearish_pattern = {}
+    for pattern_name, values in pattern_results.items():
       last_value = values[-1]
 
       if last_value > 0:
-        last_candle_patterns[pattern_name] = "BULLISH"
+        bullish_pattern[pattern_name] = "BULLISH"
+        logger.info("Bullish pattern: " + pattern_name)
       elif last_value < 0:
-        last_candle_patterns[pattern_name] = "BEARISH"
-      else:
-        logger.info(f"Pattern not found {pattern_name}!")
+        bearish_pattern[pattern_name] = "BEARISH"
+        logger.info("Bearish pattern: " + pattern_name)
 
-    return last_candle_patterns
+    if bullish_pattern and bearish_pattern:
+      logger.info("Patterns conflict -> HOLD")
+    elif bullish_pattern and self.delta > 0:
+      logger.info(f"Bullish pattern found {bullish_pattern} and delta {self.delta} -> BUY")
+    elif bearish_pattern and self.delta < 0:
+      logger.info(f"Bearish pattern found {bullish_pattern} and delta {self.delta} -> SELL")
+    else:
+      logger.info("Result -> HOLD")
+
+
+    return bullish_pattern, bearish_pattern
 
