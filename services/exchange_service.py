@@ -45,7 +45,7 @@ class ConnectToExchange:
     for attempt in range(1, 6):
       try:
         ticker = self.exchange.fetch_ticker(self.market_symbol)
-        logger.info(f"Fetched ticker: {ticker}")
+        #logger.info(f"Fetched ticker: {ticker}")
 
         ask = ticker.get('ask')
         bid = ticker.get('bid')
@@ -69,10 +69,10 @@ class ConnectToExchange:
     for attempt in range(1, 6):
       try:
         candles = self.exchange.fetch_ohlcv(
-            self.market_symbol, self.timeframe
+            self.market_symbol, self.timeframe, limit = 500
         )
         if candles:
-          #logger.info(f"Fetched candles count: {len(candles)}")
+          logger.info(f"Fetched candles count: {len(candles)}, timeframe {self.timeframe}")
           self.candles = candles
           return candles
         logger.error(f"Attempt {attempt}/5: Empty candles data received.")
