@@ -11,6 +11,9 @@ class PatternService:
     candles: DataFrame
     delta: float = 0.0
 
+    BUY_THRESHOLD: float = 2.5
+    SELL_THRESHOLD: float = -3.5
+
     def __init__(self, candles: DataFrame, delta: float):
         self.candles = candles
         self.delta = delta
@@ -39,20 +42,15 @@ class PatternService:
     def is_anomaly_volume(self) -> bool:
         volume_p = self.candles["volume"].to_numpy(dtype=float)
         volume_sma = talib.SMA(volume_p, timeperiod=20)
-
-        # Проверка на NaN
         if np.isnan(volume_sma[-2]):
             return False
-
         return float(volume_p[-2]) > float(volume_sma[-2])
 
     def is_bollinger_bands(self) -> tuple[bool, bool]:
         close_p = self.candles["close"].to_numpy(dtype=float)
         upper, middle, lower = talib.BBANDS(close_p, timeperiod=20)
-
         if np.isnan(lower[-2]) or np.isnan(upper[-2]):
             return False, False
-
         near_support = self.candles["low"].iloc[-2] <= lower[-2]
         near_resistance = self.candles["high"].iloc[-2] >= upper[-2]
         return near_support, near_resistance
@@ -60,57 +58,70 @@ class PatternService:
     def is_RSI(self) -> tuple[bool, bool, float]:
         close_p = self.candles["close"].to_numpy(dtype=float)
         rsi_arr = talib.RSI(close_p, timeperiod=14)
-
         if np.isnan(rsi_arr[-2]):
             return False, False, 50.0
-
         last_value = float(rsi_arr[-2])
-        is_oversold = last_value < 35
-        is_overbought = last_value > 65
+        return last_value < 35, last_value > 65, last_value
 
-        return is_oversold, is_overbought, last_value
-
-    def get_last_candle_pattern(self) -> tuple[dict, dict]:
-
+    def get_last_candle_pattern(self) -> tuple[dict, dict, float]:
         if len(self.candles) < 30:
-            logger.warning("Not enough candles for technical analysis (min 30 required)")
-            return {}, {}
+            logger.warning("Not enough candles for technical analysis")
+            return {}, {}, 0.0
 
+        score: float = 0.0
         pattern_results: dict = self.patterns_analysis()
-        bullish_pattern = {}
-        bearish_pattern = {}
-
-        is_anomaly_vol = self.is_anomaly_volume()
-        near_support, near_resistance = self.is_bollinger_bands()
-        is_rsi_oversold, is_rsi_overbought, rsi_value = self.is_RSI()
-
-        logger.info(f"Volume high: {is_anomaly_vol}")
-        logger.info(f"BBands: Support: {near_support} | Resistance: {near_resistance}")
-        logger.info(f"RSI: {rsi_value:.2f} (Oversold: {is_rsi_oversold}, Overbought: {is_rsi_overbought})")
+        bullish_pattern, bearish_pattern = {}, {}
 
         for pattern_name, values in pattern_results.items():
             last_value = values[-2]
-
             if last_value > 0:
                 bullish_pattern[pattern_name] = "BULLISH"
-                logger.info(f"Bullish pattern: {pattern_name}")
+                score += 2.0
+                logger.info(f"Pattern (+2.0): {pattern_name} (Bullish)")
             elif last_value < 0:
                 bearish_pattern[pattern_name] = "BEARISH"
-                logger.info(f"Bearish pattern: {pattern_name}")
+                score -= 2.0
+                logger.info(f"Pattern (-2.0): {pattern_name} (Bearish)")
 
-        if bullish_pattern and bearish_pattern:
-            logger.info("Patterns conflict -> HOLD")
-        elif bullish_pattern and self.delta > 0:
-            if is_anomaly_vol and near_support and is_rsi_oversold:
-                logger.info(f"Bullish pattern {bullish_pattern} + Delta {self.delta} -> BUY 🟢")
-            else:
-                logger.info(f"Bullish pattern {bullish_pattern} found, but filters rejected -> HOLD")
-        elif bearish_pattern and self.delta < 0:
-            if is_anomaly_vol and near_resistance and is_rsi_overbought:
-                logger.info(f"Bearish pattern {bearish_pattern} + Delta {self.delta} -> SELL 🔴")
-            else:
-                logger.info(f"Bearish pattern {bearish_pattern} found, but filters rejected -> HOLD")
+        # 2. Оценка Дельты (Delta)
+        if self.delta > 0:
+            score += 1.0
+            logger.info(f"Delta (+1.0): {self.delta:.2f} > 0")
+        elif self.delta < 0:
+            score -= 1.0
+            logger.info(f"Delta (-1.0): {self.delta:.2f} < 0")
+
+
+        is_anomaly_vol = self.is_anomaly_volume()
+        if is_anomaly_vol:
+            vol_bonus = 1.0 if score >= 0 else -1.0
+            score += vol_bonus
+            logger.info(f"Volume Anomaly ({vol_bonus:+.1f}): High volume confirmed")
+
+
+        near_support, near_resistance = self.is_bollinger_bands()
+        if near_support:
+            score += 1.5
+            logger.info("BBands (+1.5): Price near Support (Lower band)")
+        if near_resistance:
+            score -= 1.5
+            logger.info("BBands (-1.5): Price near Resistance (Upper band)")
+
+        is_rsi_oversold, is_rsi_overbought, rsi_val = self.is_RSI()
+        if is_rsi_oversold:
+            score += 1.5
+            logger.info(f"RSI (+1.5): Oversold ({rsi_val:.1f})")
+        elif is_rsi_overbought:
+            score -= 1.5
+            logger.info(f"RSI (-1.5): Overbought ({rsi_val:.1f})")
+
+        logger.info(f"TOTAL SCORE: {score:.1f} (Thresholds: BUY >= {self.BUY_THRESHOLD}, SELL <= {self.SELL_THRESHOLD})")
+
+        if score >= self.BUY_THRESHOLD:
+            logger.info(f"Signal generated -> BUY 🟢 (Score: {score:.1f})")
+        elif score <= self.SELL_THRESHOLD:
+            logger.info(f"Signal generated -> SELL 🔴 (Score: {score:.1f})")
         else:
-            logger.info("No pattern conditions met -> HOLD")
+            logger.info(f"Signal rejected -> HOLD (Score: {score:.1f})")
 
-        return bullish_pattern, bearish_pattern
+        return bullish_pattern, bearish_pattern, score
