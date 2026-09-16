@@ -1,6 +1,7 @@
 import logging
+import asyncio
 from typing import Any, List, Optional
-import ccxt
+import ccxt.async_support as ccxt
 from ccxt.base.types import OrderBook, Trade
 
 logger = logging.getLogger(__name__)
@@ -8,43 +9,44 @@ logger = logging.getLogger(__name__)
 
 class ConnectToExchange:
 
-  def __init__(self, timeframe: str = '1m') -> None:
+  market_symbol = ''
+
+  def __init__(self, timeframe, market_symbol) -> None:
     self.timeframe = timeframe
     self.market_symbol: str = ''
     self.candles: List[List[Any]] = []
     self.spread: float = 0.0
     self.delta: float = 0.0
     self.imbalance: float = 0.0
-    self.market_symbols: dict = {}
+    self.market_symbol = market_symbol
+    self.market_symbols = []
+    self.exchange: ccxt.Exchange = ccxt.binance({
+      'enableRateLimit': True,
+    })
 
-    try:
-      self.exchange = ccxt.binance({
-          'enableRateLimit': True,
-      })
-      self.market_symbols = self.exchange.load_markets()
-    except ccxt.BaseError as e:
-      logger.error(f"Error loading market info or connection: {e}")
+  async def initialize(self) -> None:
+    self.market_symbols = await self.exchange.load_markets()
+
+  async def close_connection(self) -> None:
+    await self.exchange.close()
+
 
   def get_delta(self):
     return self.delta
 
-  def set_market_symbol(self) -> str:
-    while True:
-      user_symbol = input("Set market symbol (def. BTC/USDT): ").strip().upper()
-      if not user_symbol:
-        user_symbol = 'BTC/USDT'
 
-      if user_symbol in self.market_symbols:
-        self.market_symbol = user_symbol
-        logger.info(f"Market symbol set to: {self.market_symbol}")
-        return self.market_symbol
+  def check_market_symbol(self) -> bool:
+    if self.market_symbol in self.market_symbols:
+      logger.info(f"Market symbol set to: {self.market_symbol}")
+      return True
+    else:
+      logger.warning(f"Symbol not found: {self.market_symbol}. Config not correct!")
+      return False
 
-      logger.info(f"Symbol not found: {user_symbol}. Try again!")
-
-  def fetch_ticker(self) -> int | float:
+  async def fetch_ticker(self) -> int | float:
     for attempt in range(1, 6):
       try:
-        ticker = self.exchange.fetch_ticker(self.market_symbol)
+        ticker = await self.exchange.fetch_ticker(self.market_symbol)
         #logger.info(f"Fetched ticker: {ticker}")
 
         ask = ticker.get('ask')
@@ -65,10 +67,10 @@ class ConnectToExchange:
 
     return None
 
-  def fetch_candles(self) -> Optional[List[List[Any]]]:
+  async def fetch_candles(self) -> Optional[List[List[Any]]]:
     for attempt in range(1, 6):
       try:
-        candles = self.exchange.fetch_ohlcv(
+        candles = await self.exchange.fetch_ohlcv(
             self.market_symbol, self.timeframe, limit = 500
         )
         if candles:
@@ -81,10 +83,10 @@ class ConnectToExchange:
 
     return None
 
-  def fetch_order_book(self) -> Optional[OrderBook]:
+  async def fetch_order_book(self) -> Optional[OrderBook]:
     for attempt in range(1, 6):
       try:
-        order_book = self.exchange.fetch_order_book(
+        order_book = await self.exchange.fetch_order_book(
             self.market_symbol, limit=10
         )
         bid_volume = sum(amount for price, amount in order_book.get('bids', []))
@@ -103,9 +105,9 @@ class ConnectToExchange:
 
     return None
 
-  def fetch_trades(self) -> Optional[List[Trade]]:
+  async def fetch_trades(self) -> Optional[List[Trade]]:
     try:
-      trades = self.exchange.fetch_trades(self.market_symbol)
+      trades = await self.exchange.fetch_trades(self.market_symbol)
 
       buy_volume = sum(
           trade['amount'] for trade in trades if trade.get('side') == 'buy'
@@ -124,9 +126,23 @@ class ConnectToExchange:
       logger.error(f"Fetch trades error: {e}")
       return None
 
-  def start(self):
-    self.set_market_symbol()
-    self.fetch_ticker()
-    self.fetch_order_book()
-    self.fetch_trades()
+  async def start(self) -> None:
+    try:
+
+      await self.initialize()
+
+      check_sym = self.check_market_symbol()
+      if check_sym:
+        await asyncio.gather(
+          self.fetch_ticker(),
+          self.fetch_order_book(),
+          self.fetch_trades(),
+          self.fetch_candles()
+        )
+        logger.info("Operations finished successfully!")
+      else:
+        logger.warning("Aborted due to invalid market symbol.")
+    finally:
+      await self.close_connection()
+      logger.info("Connection closed!")
 
