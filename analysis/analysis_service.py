@@ -4,9 +4,9 @@ import logging
 import pandas as pd
 
 from services import OrderFlowAnalys
-from services import PatternAnalyzer
-from services import IndicatorAnalyzer
-from services import AnalysisResult
+from analysis import PatternAnalyzer
+from analysis import IndicatorAnalyzer
+from analysis import AnalysisResult
 
 
 logger = logging.getLogger(__name__)
@@ -83,7 +83,6 @@ class AnalysisService:
             indicator_result,
         )
 
-        # Сначала score, потом signal
         score = result.calculate_score()
         signal = result.generate_signal()
 

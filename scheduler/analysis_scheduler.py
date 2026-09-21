@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from services import ConnectToExchange
 from services import MarketData
-from services.analysis_service import AnalysisService
+from analysis import AnalysisService
 
 
 logger = logging.getLogger(__name__)
