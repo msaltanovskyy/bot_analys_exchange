@@ -21,7 +21,7 @@ class AnalysisService:
         self,
         symbol: str,
         timeframe: str,
-        limit: int = 500,
+        limit: int,
     ) -> dict:
 
         ticker_task = self.market_data.fetch_ticker(symbol)

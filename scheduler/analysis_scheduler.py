@@ -21,6 +21,7 @@ class AnalysisScheduler:
         lock: threading.Lock,
         stop_event: threading.Event,
         max_concurrent_tasks: int = 5,
+        limit: int = 0,
     ) -> None:
 
         self.symbols = symbols
@@ -40,9 +41,8 @@ class AnalysisScheduler:
 
         self.last_processed = {}
 
-    # ========================================================
-    # START
-    # ========================================================
+        self.limit = limit
+
 
     async def start(self) -> None:
 
@@ -89,10 +89,6 @@ class AnalysisScheduler:
                 "Analysis scheduler stopped."
             )
 
-    # ========================================================
-    # INITIAL ANALYSIS
-    # ========================================================
-
     async def _initial_analysis(self) -> None:
 
         logger.info(
@@ -138,10 +134,6 @@ class AnalysisScheduler:
             "Initial market analysis completed."
         )
 
-    # ========================================================
-    # MAIN LOOP
-    # ========================================================
-
     async def _run_loop(self) -> None:
 
         while not self.stop_event.is_set():
@@ -162,7 +154,6 @@ class AnalysisScheduler:
                     return_exceptions=True,
                 )
 
-            # Проверяем новые свечи каждые 5 секунд
             try:
 
                 await asyncio.wait_for(
@@ -177,10 +168,6 @@ class AnalysisScheduler:
 
                 pass
 
-    # ========================================================
-    # CHECK SYMBOL
-    # ========================================================
-
     async def _check_symbol(
         self,
         symbol: str,
@@ -193,7 +180,7 @@ class AnalysisScheduler:
                 await self.market_data.fetch_candles(
                     symbol,
                     timeframe,
-                    limit=3,
+                    limit = self.limit,
                 )
             )
 
@@ -205,15 +192,6 @@ class AnalysisScheduler:
                 )
 
                 return
-
-            # ------------------------------------------------
-            # CCXT timestamp:
-            #
-            # candles[-1][0] -> current candle
-            # candles[-2][0] -> closed candle
-            #
-            # timestamp приходит как milliseconds int.
-            # ------------------------------------------------
 
             closed_timestamp = datetime.fromtimestamp(
                 candles[-2][0] / 1000,
@@ -228,10 +206,6 @@ class AnalysisScheduler:
             last_timestamp = (
                 self.last_processed.get(key)
             )
-
-            # ------------------------------------------------
-            # Свеча уже была обработана
-            # ------------------------------------------------
 
             if (
                 last_timestamp is not None
@@ -260,10 +234,6 @@ class AnalysisScheduler:
                 f"{symbol} {timeframe}"
             )
 
-    # ========================================================
-    # ANALYZE SYMBOL
-    # ========================================================
-
     async def _analyze_symbol(
         self,
         symbol: str,
@@ -285,6 +255,7 @@ class AnalysisScheduler:
                     await self.analysis_service.analyze(
                         symbol,
                         timeframe,
+                        self.limit
                     )
                 )
 
@@ -292,13 +263,6 @@ class AnalysisScheduler:
                     symbol,
                     timeframe,
                 )
-
-                # ------------------------------------------------
-                # При первом анализе timestamp приходит из
-                # AnalysisService как pandas. Timestamp.
-                #
-                # Приводим его к обычному datetime UTC.
-                # ------------------------------------------------
 
                 if initial:
 
@@ -317,17 +281,9 @@ class AnalysisScheduler:
                             closed_timestamp.to_pydatetime()
                         )
 
-                # ------------------------------------------------
-                # Сохраняем результат
-                # ------------------------------------------------
-
                 with self.lock:
 
                     self.results[key] = result
-
-                # ------------------------------------------------
-                # Запоминаем последнюю обработанную свечу
-                # ------------------------------------------------
 
                 self.last_processed[key] = (
                     closed_timestamp

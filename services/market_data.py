@@ -49,7 +49,7 @@ class MarketData:
         self,
         symbol: str,
         timeframe: str,
-        limit: int = 500,
+        limit: int,
     ) -> list:
 
         try:
@@ -86,3 +86,4 @@ class MarketData:
                 f"Fetch trades error {symbol}: {e}"
             )
             raise
+

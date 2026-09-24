@@ -9,10 +9,14 @@ class ConnectToExchange:
 
         try:
             if exchange_name.lower() == "binance":
-                self.exchange = ccxt.binance({
-                    "enableRateLimit": True,
-                })
-
+              self.exchange = ccxt.binance(
+                {
+                  "apiKey": "c3oDBazNRbq47K6A5oxRM0hHazxzIl07L4UoYbnUJrESTH4V4HLe9tAA63iEnlvI",
+                  "secret": "picqtPhFzKIiUgE4m48JcTAi9ftYIyr5CRZiBXsVHCnjM2pMkEm0TjYzxskGzywv",
+                  "enableRateLimit": True,
+                }
+              )
+              self.exchange.set_sandbox_mode(True)
             elif exchange_name.lower() == "bybit":
                 self.exchange = ccxt.bybit({
                     "enableRateLimit": True,
