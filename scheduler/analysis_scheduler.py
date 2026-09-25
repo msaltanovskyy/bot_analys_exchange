@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from services import ConnectToExchange
 from services import MarketData
-from analysis import AnalysisService
+from analysis import Analysis
 
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class AnalysisScheduler:
             exchange
         )
 
-        self.analysis_service = AnalysisService(
+        self.analysis_service = Analysis(
             self.market_data
         )
 

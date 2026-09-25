@@ -14,7 +14,6 @@ class IndicatorAnalyzer:
         self.candles = candles
         self.delta = delta
 
-        # Предварительная подготовка массивов
         self.close_p = (
             candles["close"].to_numpy(dtype=float)
             if "close" in candles and not candles.empty
@@ -88,7 +87,7 @@ class IndicatorAnalyzer:
         }
 
     def get_vwap(self) -> float | None:
-        """Расчет средневзвешенной цены по объему (VWAP)."""
+
         if not self._is_data_valid(14):
             return None
 

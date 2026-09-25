@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from dataclasses import asdict
 
 import pandas as pd
 
@@ -7,12 +8,12 @@ from services import OrderFlowAnalys
 from analysis import PatternAnalyzer
 from analysis import IndicatorAnalyzer
 from analysis import AnalysisResult
-
+from data import AnalysisData
 
 logger = logging.getLogger(__name__)
 
 
-class AnalysisService:
+class Analysis:
 
     def __init__(self, market_data):
         self.market_data = market_data
@@ -91,44 +92,25 @@ class AnalysisService:
 
         analysis = result.get_result()
 
-        analysis.update({
-            "symbol": symbol,
-            "timeframe": timeframe,
+        data = AnalysisData(
+          symbol = symbol,
+          timeframe = timeframe,
+          spread = spread,
+          imbalance = imbalance,
+          delta = delta,
+          rsi=indicator_result['rsi'],
+          ema200=indicator_result['ema200'],
+          close_price=indicator_result["close_price"],
+          is_uptrend=indicator_result["is_uptrend"],
+          volume_anomaly=indicator_result["volume_anomaly"],
+          near_support=indicator_result["near_support"],
+          near_resistance=indicator_result["near_resistance"],
+          candles=candles,
+          closed_candle_timestamp=closed_candle['timestamp'],
+          current_candle_timestamp=current_candle['timestamp'],
+          score=score,
+          signal=signal,)
 
-            "spread": spread,
-            "imbalance": imbalance,
-            "delta": delta,
-
-            "rsi": indicator_result["rsi"],
-            "ema200": indicator_result["ema200"],
-            "close_price": indicator_result["close_price"],
-
-            "is_uptrend": indicator_result["is_uptrend"],
-
-            "volume_anomaly": indicator_result[
-                "volume_anomaly"
-            ],
-
-            "near_support": indicator_result[
-                "near_support"
-            ],
-
-            "near_resistance": indicator_result[
-                "near_resistance"
-            ],
-
-            "candles": dataframe,
-
-            "closed_candle_timestamp": closed_candle[
-                "timestamp"
-            ],
-
-            "current_candle_timestamp": current_candle[
-                "timestamp"
-            ],
-
-            "score": score,
-            "signal": signal,
-        })
+        analysis.update(asdict(data))
 
         return analysis
