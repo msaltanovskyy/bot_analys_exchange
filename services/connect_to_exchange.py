@@ -1,34 +1,30 @@
 import logging
 import ccxt.async_support as ccxt
+from .env_config import EnvConfig
 
 logger = logging.getLogger(__name__)
 
 class ConnectToExchange:
 
     def __init__(self, exchange_name: str = "binance") -> None:
-
+        config = EnvConfig()
         try:
-            if exchange_name.lower() == "binance":
-              self.exchange = ccxt.binance(
-                {
-                  "apiKey": "c3oDBazNRbq47K6A5oxRM0hHazxzIl07L4UoYbnUJrESTH4V4HLe9tAA63iEnlvI",
-                  "secret": "picqtPhFzKIiUgE4m48JcTAi9ftYIyr5CRZiBXsVHCnjM2pMkEm0TjYzxskGzywv",
-                  "enableRateLimit": True,
-                }
-              )
-              self.exchange.set_sandbox_mode(True)
-            elif exchange_name.lower() == "bybit":
-                self.exchange = ccxt.bybit({
-                    "enableRateLimit": True,
-                })
-
-            else:
-                raise ValueError(
-                    f"Unsupported exchange: {exchange_name}"
-                )
-
-            logger.info(f"Connected to {exchange_name}")
-
+          if config.DEBUG_MODE:
+            self.exchange = ccxt.binance(
+              {
+                "apiKey": config.PUBLIC_TESTNET_API_KEY,
+                "secret": config.PRIVATE_TESTNET_API_KEY,
+                "enableRateLimit": True,
+              }
+            )
+            self.exchange.set_sandbox_mode(True)
+            logger.info(f"Connected to {exchange_name}, DEBUG_MODE = {config.DEBUG_MODE}")
+            logger.info(f"API keys: {config.PUBLIC_TESTNET_API_KEY} \n {config.PRIVATE_TESTNET_API_KEY} ")
+          else:
+            self.exchange = ccxt.binance({
+              "enableRateLimit": True,
+            })
+            logger.info(f"Connected to {exchange_name}, DEBUG_MODE = {config.DEBUG_MODE}")
         except Exception as e:
             logger.error(
                 f"Connection to {exchange_name} failed: {e}"
