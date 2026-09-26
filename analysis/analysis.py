@@ -109,7 +109,8 @@ class Analysis:
           closed_candle_timestamp=closed_candle['timestamp'],
           current_candle_timestamp=current_candle['timestamp'],
           score=score,
-          signal=signal)
+          signal=signal
+        )
 
         analysis.update(asdict(data))
 

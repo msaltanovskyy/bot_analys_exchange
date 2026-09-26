@@ -138,6 +138,7 @@ class IndicatorAnalyzer:
         val = rsi[self.CLOSED_CANDLE]
         return None if np.isnan(val) else float(val)
 
+
     def get_analysis(self) -> dict[str | Any, None | float | int | bool | Any] | IndicatorData:
         if not self._is_data_valid(2):
             return {
@@ -175,7 +176,7 @@ class IndicatorAnalyzer:
           near_resistance = near_resistance,
           rsi = rsi,
           rsi_oversold = rsi is not None and rsi < 35,
-          rsi_overbought = rsi is None and rsi > 65,
+          rsi_overbought = rsi is not None and rsi > 65,
           macd = macd_data["macd"],
           macd_hist = macd_data["macd_hist"],
           macd_bullish = macd_data["macd_bullish"],

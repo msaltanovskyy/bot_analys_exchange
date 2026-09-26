@@ -132,7 +132,7 @@ else:
         width="stretch",
     )
 
-
+#add multiframe result tb
 # Details & Visualizations
 detail_tab(current_results = current_results, st = st, talib = talib)
 

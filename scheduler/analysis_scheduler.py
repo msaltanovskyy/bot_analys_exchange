@@ -45,56 +45,36 @@ class AnalysisScheduler:
 
 
     async def start(self) -> None:
-
         logger.info(
             "Analysis scheduler starting..."
         )
-
         self.semaphore = asyncio.Semaphore(
             self.max_concurrent_tasks
         )
-
         self.exchange_connection = ConnectToExchange()
 
         exchange = (
             self.exchange_connection.get_exchange()
         )
-
         self.market_data = MarketData(
             exchange
         )
-
         self.analysis_service = Analysis(
             self.market_data
         )
 
         try:
-
             await self._initial_analysis()
-
             await self._run_loop()
-
         finally:
-
-            logger.info(
-                "Closing exchange connection..."
-            )
-
-            await (
-                self.exchange_connection
-                .close_connection()
-            )
-
+            logger.info("Closing exchange connection...")
+            await (self.exchange_connection.close_connection())
             logger.info(
                 "Analysis scheduler stopped."
             )
 
     async def _initial_analysis(self) -> None:
-
-        logger.info(
-            "Starting initial market analysis..."
-        )
-
+        logger.info( "Starting initial market analysis...")
         tasks = [
             self._analyze_symbol(
                 symbol=symbol,
@@ -106,38 +86,18 @@ class AnalysisScheduler:
         ]
 
         if not tasks:
-
-            logger.warning(
-                "No symbols or timeframes selected."
-            )
-
+            logger.warning("No symbols or timeframes selected.")
             return
-
-        results = await asyncio.gather(
-            *tasks,
-            return_exceptions=True,
-        )
-
+        results = await asyncio.gather(*tasks,return_exceptions=True)
         for task_result in results:
-
-            if isinstance(
-                task_result,
-                Exception,
-            ):
-
-                logger.error(
-                    f"Initial analysis task failed: "
-                    f"{task_result}"
-                )
-
+            if isinstance(task_result, Exception,):
+                logger.error(f"Initial analysis task failed: {task_result}")
         logger.info(
             "Initial market analysis completed."
         )
 
     async def _run_loop(self) -> None:
-
         while not self.stop_event.is_set():
-
             tasks = [
                 self._check_symbol(
                     symbol,
@@ -146,16 +106,9 @@ class AnalysisScheduler:
                 for symbol in self.symbols
                 for timeframe in self.timeframes
             ]
-
             if tasks:
-
-                await asyncio.gather(
-                    *tasks,
-                    return_exceptions=True,
-                )
-
+                await asyncio.gather(*tasks,return_exceptions=True,)
             try:
-
                 await asyncio.wait_for(
                     asyncio.to_thread(
                         self.stop_event.wait,
@@ -163,19 +116,11 @@ class AnalysisScheduler:
                     ),
                     timeout=5,
                 )
-
             except asyncio.TimeoutError:
-
                 pass
 
-    async def _check_symbol(
-        self,
-        symbol: str,
-        timeframe: str,
-    ) -> None:
-
+    async def _check_symbol(self,symbol: str,timeframe: str) -> None:
         try:
-
             candles = (
                 await self.market_data.fetch_candles(
                     symbol,
@@ -183,56 +128,30 @@ class AnalysisScheduler:
                     limit = self.limit,
                 )
             )
-
             if len(candles) < 2:
-
-                logger.warning(
-                    f"Not enough candles: "
-                    f"{symbol} {timeframe}"
-                )
-
+                logger.warning( f"Not enough candles: "f"{symbol} {timeframe}")
                 return
-
             closed_timestamp = datetime.fromtimestamp(
                 candles[-2][0] / 1000,
                 tz=timezone.utc,
             )
-
-            key = (
-                symbol,
-                timeframe,
-            )
-
-            last_timestamp = (
-                self.last_processed.get(key)
-            )
-
-            if (
-                last_timestamp is not None
-                and closed_timestamp <= last_timestamp
-            ):
-
+            key = (symbol,timeframe)
+            last_timestamp = (self.last_processed.get(key))
+            if last_timestamp is not None and closed_timestamp <= last_timestamp:
                 return
-
             logger.info(
                 f"New closed candle: "
                 f"{symbol} {timeframe} | "
                 f"closed={closed_timestamp}"
             )
-
             await self._analyze_symbol(
                 symbol=symbol,
                 timeframe=timeframe,
                 initial=False,
                 closed_timestamp=closed_timestamp,
             )
-
         except Exception:
-
-            logger.exception(
-                f"Analysis check error: "
-                f"{symbol} {timeframe}"
-            )
+            logger.exception(f"Analysis check error: {symbol} {timeframe}")
 
     async def _analyze_symbol(
         self,
@@ -243,62 +162,23 @@ class AnalysisScheduler:
     ) -> None:
 
         async with self.semaphore:
-
             try:
-
-                logger.info(
-                    f"Starting analysis: "
-                    f"{symbol} {timeframe}"
-                )
-
+                logger.info(f"Starting analysis: {symbol} {timeframe}")
                 result = (
-                    await self.analysis_service.analyze(
-                        symbol,
-                        timeframe,
-                        self.limit
-                    )
+                    await self.analysis_service.analyze(symbol,timeframe,self.limit)
                 )
-
-                key = (
-                    symbol,
-                    timeframe,
-                )
+                key = symbol,timeframe
 
                 if initial:
-
-                    closed_timestamp = (
-                        result[
-                            "closed_candle_timestamp"
-                        ]
-                    )
-
-                    if hasattr(
-                        closed_timestamp,
-                        "to_pydatetime",
-                    ):
-
-                        closed_timestamp = (
-                            closed_timestamp.to_pydatetime()
-                        )
+                    closed_timestamp = result["closed_candle_timestamp"]
+                    if hasattr(closed_timestamp,"to_pydatetime"):
+                        closed_timestamp = closed_timestamp.to_pydatetime()
 
                 with self.lock:
-
                     self.results[key] = result
-
                 self.last_processed[key] = (
                     closed_timestamp
                 )
-
-                logger.info(
-                    f"Analysis completed: "
-                    f"{symbol} {timeframe} | "
-                    f"closed candle="
-                    f"{closed_timestamp}"
-                )
-
+                logger.info(f"Analysis completed: {symbol} {timeframe} | closed candle = {closed_timestamp}")
             except Exception:
-
-                logger.exception(
-                    f"Analysis error: "
-                    f"{symbol} {timeframe}"
-                )
+                logger.exception(f"Analysis error: {symbol} {timeframe}")
