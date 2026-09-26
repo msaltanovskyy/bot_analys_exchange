@@ -1,7 +1,11 @@
 import logging
+from dataclasses import asdict
+from typing import Any
+
 import numpy as np
 import talib
 from pandas import DataFrame
+from data import IndicatorData
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +138,7 @@ class IndicatorAnalyzer:
         val = rsi[self.CLOSED_CANDLE]
         return None if np.isnan(val) else float(val)
 
-    def get_analysis(self) -> dict:
+    def get_analysis(self) -> dict[str | Any, None | float | int | bool | Any] | IndicatorData:
         if not self._is_data_valid(2):
             return {
                 "ema200": None,
@@ -161,21 +165,23 @@ class IndicatorAnalyzer:
         macd_data = self.get_macd()
         vwap = self.get_vwap()
 
-        return {
-            "ema200": ema200,
-            "close_price": close_price,
-            "is_uptrend": ema200 is not None and close_price > ema200,
-            "delta": self.delta,
-            "volume_anomaly": self.is_anomaly_volume(),
-            "near_support": near_support,
-            "near_resistance": near_resistance,
-            "rsi": rsi,
-            "rsi_oversold": rsi is not None and rsi < 35,
-            "rsi_overbought": rsi is not None and rsi > 65,
-            "macd": macd_data["macd"],
-            "macd_hist": macd_data["macd_hist"],
-            "macd_bullish": macd_data["macd_bullish"],
-            "macd_bearish": macd_data["macd_bearish"],
-            "vwap": vwap,
-            "above_vwap": vwap is not None and close_price > vwap,
-        }
+        data = IndicatorData(
+          ema200 = ema200,
+          close_price = close_price,
+          is_uptrend = ema200 is not None and close_price > ema200,
+          delta = self.delta,
+          volume_anomaly = self.is_anomaly_volume(),
+          near_support = near_support,
+          near_resistance = near_resistance,
+          rsi = rsi,
+          rsi_oversold = rsi is not None and rsi < 35,
+          rsi_overbought = rsi is None and rsi > 65,
+          macd = macd_data["macd"],
+          macd_hist = macd_data["macd_hist"],
+          macd_bullish = macd_data["macd_bullish"],
+          macd_bearish = macd_data["macd_bearish"],
+          vwap = vwap,
+          above_vwap = vwap is not None and close_price > vwap,
+        )
+
+        return asdict(data)
