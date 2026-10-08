@@ -4,7 +4,7 @@ from typing import Any
 
 import ccxt.async_support as ccxt
 
-
+from data.market_model import MarketModel
 
 logger = logging.getLogger(__name__)
 
@@ -95,11 +95,12 @@ class MarketData:
         t_trades = tg.create_task(self.fetch_trades(self.symbol))
         #t_balance = tg.create_task(self.fetch_balances())
 
-      return {
-        "ticker": t_ticker.result(),
-        "candles": t_candles.result(),
-        "order_book": t_order_book.result(),
-        "trades": t_trades.result(),
-        #"balance": t_balance.result(),
-      }
+      data = MarketModel(
+        ticker=t_ticker.result(),
+        candles=t_candles.result(),
+        trades=t_trades.result(),
+        order_book=t_order_book.result(),
+      )
+
+      return data
 

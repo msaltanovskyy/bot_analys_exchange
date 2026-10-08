@@ -46,3 +46,14 @@ class OrderFlowAnalys:
       f" {delta:.4f}"
     )
     return delta
+
+  def calculate_result(self, trades, book,ticker):
+    delta = self.calculate_delta(trades=trades)
+    imbalance = self.calculate_imbalance(book=book)
+    spread = self.calculate_spread(ticker=ticker)
+
+    return {
+      "delta":delta,
+      "imbalance":imbalance,
+      "spread":spread,
+    }

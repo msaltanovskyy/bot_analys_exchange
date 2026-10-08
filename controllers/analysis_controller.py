@@ -5,13 +5,13 @@ from datetime import datetime, timezone
 
 from services import ConnectToExchange
 from services import MarketData
-from analysis import Analysis
+from core import Analysis
 
 
 logger = logging.getLogger(__name__)
 
 
-class AnalysisScheduler:
+class AnalysisController:
 
     def __init__(
         self,

@@ -1,0 +1,13 @@
+{
+  "analysis": {
+    "timeframes": ["15m","1h","4h"],
+    "symbols": [
+      "BTC/USDT",
+      "ETH/USDT",
+      "SOL/USDT",
+      "BNB/USDT",
+      "USDC/USDT"
+    ],
+    "limit": 500
+  }
+}

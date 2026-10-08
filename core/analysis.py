@@ -5,9 +5,9 @@ from dataclasses import asdict
 import pandas as pd
 
 from services import OrderFlowAnalys
-from analysis import PatternAnalysis
-from analysis import IndicatorAnalyzer
-from analysis import AnalysisResult
+from core import PatternAnalysis
+from core import IndicatorAnalyzer
+from core import AnalysisResult
 from data import AnalysisData
 
 logger = logging.getLogger(__name__)
