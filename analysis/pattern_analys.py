@@ -7,7 +7,7 @@ from pandas import DataFrame
 logger = logging.getLogger(__name__)
 
 
-class PatternAnalyzer:
+class PatternAnalysis:
 
     def __init__(self, candles: DataFrame):
         self.candles = candles

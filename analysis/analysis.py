@@ -5,7 +5,7 @@ from dataclasses import asdict
 import pandas as pd
 
 from services import OrderFlowAnalys
-from analysis import PatternAnalyzer
+from analysis import PatternAnalysis
 from analysis import IndicatorAnalyzer
 from analysis import AnalysisResult
 from data import AnalysisData
@@ -33,6 +33,7 @@ class Analysis:
         )
         order_book_task = self.market_data.fetch_order_book(symbol)
         trades_task = self.market_data.fetch_trades(symbol)
+
 
         ticker, candles, order_book, trades = await asyncio.gather(
             ticker_task,
@@ -70,7 +71,7 @@ class Analysis:
         imbalance = order_flow.calculate_imbalance(order_book)
         delta = order_flow.calculate_delta(trades)
 
-        pattern_result = PatternAnalyzer(
+        pattern_result = PatternAnalysis(
             dataframe
         ).analyze()
 
