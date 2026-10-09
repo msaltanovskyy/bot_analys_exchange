@@ -11,11 +11,17 @@ logger = logging.getLogger(__name__)
 
 class MarketData:
 
-    def __init__(self, exchange,symbol, timeframe, limit) -> None:
-        self.exchange = exchange
-        self.symbol = symbol
-        self.timeframe = timeframe
-        self.limit = limit
+    def __init__(
+      self,
+      exchange,
+      symbol: str | None = None,
+      timeframe: str | None = None,
+      limit: int = 0
+    ) -> None:
+      self.exchange = exchange
+      self.symbol = symbol
+      self.timeframe = timeframe
+      self.limit = limit
 
     async def fetch_market_symbols(self) -> list[str]:
         try:
